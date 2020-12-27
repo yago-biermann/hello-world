@@ -1,24 +1,38 @@
-$DateJson = Get-Content .\pullDate.json | ConvertFrom-Json
+. "./tests/tests.ps1"
+
+$DateJson = Get-Content .\commitDate.json | ConvertFrom-Json
 $CurrentDate = "08-17-2021"
-$CommitNumber = 1
 # $CurrentDate = Get-Date -Format "MM-dd-yyyy"
 
-function CheckJsonValue {
-        if ($CurrentDate -in $DateJson.psobject.properties.name -and $DateJson.$CurrentDate -eq "special")
-            {return $true}
-        elseif ($CurrentDate -in $DateJson.psobject.properties.name -and $DateJson.$CurrentDate -eq "normal") 
-            {return $false}
-        else {
-            Write-Host "Not today"
-            break
-        }       
-    }
+function GetLastCommit {
+    $LastCommit = Get-Content -Path ".\files\commitFile.txt" -Tail 1
+    [int]$CommitNumber = $LastCommit -replace "[a-z\s\:]"
+    return $CommitNumber
+}
 
-function MakePullRequest {    
-    if (CheckJsonValue) {
-        New-Item -Path ./files/commitFile.txt -ItemType File;
-        for($i=1; $i -le 5; $i++) 
-            { Write-Output "Commit Number: $($CommitNumber)" >> ./files/commitFile.txt; git add . ; git commit -m "commit number: $($CommitNumber)" ; git push origin main; $CommitNumber++}
+function CheckJsonValue {
+    if ($CurrentDate -in $DateJson.psobject.properties.name -and $DateJson.$CurrentDate -eq "special")
+    { return $true }
+    elseif ($CurrentDate -in $DateJson.psobject.properties.name -and $DateJson.$CurrentDate -eq "normal") 
+    { return $false }
+    else {
+        Write-Host "Not today"
+        break
+    }       
+}
+# git add . ; git commit -m "commit number: $($CommitNumber)" ; git push origin main;
+# Add-Content -Path "./files/commitFile.txt" -Value "Commit Number: $($CommitNumber)"
+function MakeCommit {
+    $CommitNumber = GetLastCommit    
+    if (CheckJsonValue) { 
+        # New-Item -Path ./files/commitFile.txt -ItemType File;
+        for ($i = 1; $i -le 5; $i++) {
+            git add .;
+            git commit -m "commit number: $($CommitNumber)";
+            git push origin main; 
+            Add-Content -Path "./files/commitFile.txt" -Value "Commit Number: $($CommitNumber +1)";
+            $CommitNumber++;
+        }
     }
     elseif (!(CheckJsonValue)) {
         Test-Path .\files
@@ -26,6 +40,5 @@ function MakePullRequest {
     }
 }
 
-
-# Make_PullRequest
-MakePullRequest
+Test-GetLastCommit
+MakeCommit
